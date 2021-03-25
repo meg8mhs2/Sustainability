@@ -1,0 +1,774 @@
+---
+title: "Sustainability Project"
+author: "Megan Johnston"
+date: "March 14, 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+
+## Load All Data
+
+```{r Load}
+data15<- read.csv("./Data/data2015_coded.csv")
+data16<- read.csv("./Data/data2016_coded.csv")
+data17<- read.csv("./Data/data2017_ coded.csv")
+data18<- read.csv("./Data/data2018_coded.csv")
+```
+
+
+## 2016 Cleaning
+Classify upper, lower; create Class and Level variables
+
+Note: 2015 does not include class year
+Note: conisder looking at NAs & where they fall
+Note: After looking at the number of upperclassmen students who don't fit into Clairmont and off campus, a 'main campus' variable was added to be analyzed
+
+```{r 16 Clean}
+data16Sum <- data16 %>% mutate(Class = "") #Class Vaiable
+data16Sum$Class <- ifelse(data16Sum$Level== "Senior" | data16Sum$Level== "Junior" , "Upper", "Not Undergrad") #Assign Upperclassmen
+data16Sum$Class <- ifelse(data16Sum$Level== "Sophomore"|data16Sum$Level== "Freshman", "Under", data16Sum$Class) #Assign Underclassmen
+
+data16Sum <- data16Sum %>% mutate(Living = NA) #Location Variable 
+data16Sum$Living <- ifelse((data16Sum$Class== "Upper" & data16Sum$DormBuilding== "No Dorm"), "Off", NA) #Assign off campus
+data16Sum$Living <- ifelse((str_detect(data16Sum$DormBuilding, "Clairmont")) & (data16Sum$Class== "Upper"), "Clairmont", data16Sum$Living) #Assign Clairmont
+
+data16Sum %>% filter(data16Sum$Class== "Upper" & is.na(data16Sum$Living)) #See the upperclassmen on main campus, make sure no errors were made in the Living
+
+data16Sum$Living <- ifelse((data16Sum$Class== "Upper" & is.na(data16Sum$Living)), "Main", data16Sum$Living) #Assign Main
+
+#CREATE NEW TABLE WITHOUT NECCESSARY DATA AND ONLY UNDERGRADUATES
+data16final <- data16Sum %>% select(Q1.a, Q1.b, Q1.c, Q1.d, Q1.e, Q1.f, Q1.g, Q1.h, Q2.a, Q2.b, Q2.c, Q2.d, Q2.e, Q2.f, Class, Living, DormBuilding, Level) %>% 
+  filter(Class != "Not Undergrad") %>% 
+  mutate (Q1.avg=  rowMeans(select(., Q1.a, Q1.b, Q1.c, Q1.d, Q1.e, Q1.f, Q1.g, Q1.h))) %>% 
+  mutate (Q2.avg=rowMeans(select(., Q2.a, Q2.b, Q2.c, Q2.d, Q2.e, Q2.f)))#Clear unneccessary variables and non-undergraduates, add average of Q1 and Q2
+
+#Number of Observations
+data16Count<- data16final %>%
+  count(Class, Living)
+
+```
+
+## 2017 Cleaning
+Classify upper, lower; create Class and Level variables
+
+```{r 17 Clean}
+data17Sum <- data17 %>% mutate(Class = "") #Class Variable
+data17Sum$Class <- ifelse(data17Sum$Level== "Senior"| data17Sum$Level=="Junior", "Upper", "Not Undergrad") #Assign Upperclassmen
+data17Sum$Class <- ifelse(data17Sum$Level== "Sophomore"| data17Sum$Level== "Freshman", "Under", data17Sum$Class) #Assign Underclassmen
+
+data17Sum <- data17Sum %>% mutate(Living = NA) #Location Variable 
+data17Sum$Living <- ifelse((data17Sum$Class== "Upper" & data17Sum$DormBuilding== "No Dorm"), "Off", NA) #Assign off campus
+data17Sum$Living <- ifelse((str_detect(data17Sum$DormBuilding, "Clairmont")) & (data17Sum$Class== "Upper"), "Clairmont", data17Sum$Living) #Assign Clairmont
+
+data17Sum %>% filter(data17Sum$Class== "Upper" & is.na(data17Sum$Living)) #See the upperclassmen on main campus, check coding
+
+data17Sum$Living <- ifelse((data17Sum$Class== "Upper" & is.na(data17Sum$Living)), "Main", data17Sum$Living) #Assign Main
+
+#CREATE NEW TABLE WITHOUT NECCESSARY DATA AND ONLY UNDERGRADUATES
+data17final <- data17Sum %>% 
+  select(Q1.a, Q1.b, Q1.c, Q1.d, Q1.e, Q1.f, Q1.g, Q1.h, Q2.a, Q2.b, Q2.c, Q2.d, Q2.e, Q2.f, Class, Living, DormBuilding, Level) %>% 
+  filter(Class != "Not Undergrad")  %>% 
+  mutate (Q1.avg=  rowMeans(select(., Q1.a, Q1.b, Q1.c, Q1.d, Q1.e, Q1.f, Q1.g, Q1.h))) %>% 
+  mutate (Q2.avg=rowMeans(select(., Q2.a, Q2.b, Q2.c, Q2.d, Q2.e, Q2.f))) #Clear unneccassary variables, add average for Q1 and Q2, ensure only undergrads
+
+#Number of Observations
+data17Count<- data17final %>%
+  count(Class, Living)
+
+```
+
+## 2018 Cleaning
+Classify upper, lower; create Class and Level variables
+
+```{r 18 Clean}
+data18Sum <- data18 %>% mutate(Class = "") #Class Variable
+data18Sum$Class <- ifelse(data18Sum$Level== 3 | data18Sum$Level== 4, "Upper", "Not Undergrad") #Assign Upperclassmen
+data18Sum$Class <- ifelse(data18Sum$Level== 1 | data18Sum$Level== 2, "Under", data18Sum$Class) #Assign Underclassmen
+
+data18Sum <- data18Sum %>% mutate(Living = NA) #Location Variable 
+data18Sum$Living <- ifelse((data18Sum$Class== "Upper" & data18Sum$Residence== "Off Campus"), "Off", NA) #Assign off campus
+data18Sum$Living <- ifelse(data18Sum$Residence== "On Campus" & (data18Sum$Class== "Upper"), "On", data18Sum$Living) #Assign Clairmont
+
+data18Sum %>% filter(data18Sum$Class== "Upper" & is.na(data18Sum$Living)) #See the upperclassmen on main campus
+
+#CREATE NEW TABLE WITHOUT NECCESSARY DATA AND ONLY UNDERGRADUATES
+data18final <- data18Sum %>% select(Q3a, Q3b, Q3c, Q3d, Q3e, Q3f, Q3g, Q13a, Q13b, Q13c, Q13d, Q13e, Q13f, Class, Living, Residence, Level) %>% 
+  rename(Q1.a=Q3a, Q1.b=Q3b, Q1.c=Q3c, Q1.d= Q3d, Q1.e= Q3e, Q1.h= Q3f, Q1.g=Q3g, Q2.a=Q13a, Q2.b=Q13b, Q2.c=Q13c, Q2.d=Q13d, Q2.e=Q13e, Q2.f=Q13f) %>%
+  filter(Class != "Not Undergrad") %>% 
+  mutate (Q1.avg=  rowMeans(select(., Q1.a, Q1.b, Q1.c, Q1.d, Q1.e, Q1.h, Q1.g))) %>% 
+  mutate (Q2.avg=rowMeans(select(., Q2.a, Q2.b, Q2.c, Q2.d, Q2.e, Q2.f)))#Clear unneccessary variables and non-undergraduates, add average of Q1 and Q2
+
+#Number of Observations
+data18Count<- data18final %>%
+  count(Class, Living)
+
+```
+
+Due to the small sample size in 2018, the on-campus vs off campus relationship cannot be investigated
+
+##Means and Standard Deviations by Class: Q1
+```{r Summary Stats Class}
+
+#Group By Class and find mean and sd for each question (.m is mean and .s is sd)
+data16Group1 <- data16final %>%  group_by(Class) %>% 
+  summarise(Q1.a.m =mean(Q1.a, na.rm =TRUE), Q1.b.m=mean(Q1.b, na.rm =TRUE), Q1.c.m=mean(Q1.c, na.rm =TRUE), Q1.d.m=mean(Q1.d, na.rm =TRUE), Q1.e.m=mean(Q1.e, na.rm =TRUE), Q1.f.m=mean(Q1.f, na.rm =TRUE), Q1.g.m=mean(Q1.g, na.rm =TRUE), Q1.h.m=mean(Q1.h, na.rm =TRUE), Q1.a.s =sd(Q1.a, na.rm =TRUE), 
+Q1.b.s=sd(Q1.b, na.rm =TRUE), Q1.c.s=sd(Q1.c, na.rm =TRUE), Q1.d.s=sd(Q1.d, na.rm =TRUE), 
+Q1.e.s=sd(Q1.e, na.rm =TRUE), Q1.f.s=sd(Q1.f, na.rm =TRUE), Q1.g.s=sd(Q1.g, na.rm =TRUE), 
+Q1.h.s=sd(Q1.h, na.rm =TRUE), N = n())
+
+data17Group1 <- data17final %>%  group_by(Class) %>% summarise(Q1.a.m =mean(Q1.a, na.rm =TRUE), Q1.b.m=mean(Q1.b, na.rm =TRUE), Q1.c.m=mean(Q1.c, na.rm =TRUE), Q1.d.m=mean(Q1.d, na.rm =TRUE), Q1.e.m=mean(Q1.e, na.rm =TRUE), Q1.f.m=mean(Q1.f, na.rm =TRUE), Q1.g.m=mean(Q1.g, na.rm =TRUE), Q1.h.m=mean(Q1.h, na.rm =TRUE), Q1.a.s =sd(Q1.a, na.rm =TRUE), 
+Q1.b.s=sd(Q1.b, na.rm =TRUE), Q1.c.s=sd(Q1.c, na.rm =TRUE), Q1.d.s=sd(Q1.d, na.rm =TRUE), 
+Q1.e.s=sd(Q1.e, na.rm =TRUE), Q1.f.s=sd(Q1.f, na.rm =TRUE), Q1.g.s=sd(Q1.g, na.rm =TRUE), 
+Q1.h.s=sd(Q1.h, na.rm =TRUE), N=n())
+
+data18Group1 <- data18final %>%  group_by(Class) %>% 
+  summarise(Q1.a.m =mean(Q1.a, na.rm =TRUE), Q1.b.m=mean(Q1.b, na.rm =TRUE), Q1.c.m=mean(Q1.c, na.rm =TRUE), Q1.d.m=mean(Q1.d, na.rm =TRUE), Q1.e.m=mean(Q1.e, na.rm =TRUE), Q1.g.m=mean(Q1.g, na.rm =TRUE), Q1.h.m=mean(Q1.h, na.rm =TRUE), Q1.a.s =sd(Q1.a, na.rm =TRUE), 
+Q1.b.s=sd(Q1.b, na.rm =TRUE), Q1.c.s=sd(Q1.c, na.rm =TRUE), Q1.d.s=sd(Q1.d, na.rm =TRUE), 
+Q1.e.s=sd(Q1.e, na.rm =TRUE), Q1.g.s=sd(Q1.g, na.rm =TRUE), Q1.h.s=sd(Q1.h, na.rm =TRUE), N=n())
+
+#Summarize the mean, sd by the question: Put it in a different layout using the above calculations, with the x variables being the question
+data16mean1<-t(data16Group1)[2:9,1:2]
+data16sd1<-t(data16Group1)[10:17,1:2]
+data16SumStat1<-cbind(data16mean1, data16sd1)
+#Rename df 
+rownames(data16SumStat1)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f', 'Q1.g', 'Q1.h')
+colnames(data16SumStat1)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+data17mean1<-t(data17Group1)[2:9,1:2]
+data17sd1<-t(data17Group1)[10:17,1:2]
+data17SumStat1<-cbind(data17mean1, data17sd1)
+#Rename df
+rownames(data17SumStat1)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f', 'Q1.g', 'Q1.h')
+colnames(data17SumStat1)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+data18mean1<-t(data18Group1)[2:8,1:2]
+data18sd1<-t(data18Group1)[9:15,1:2]
+data18SumStat1<-cbind(data18mean1, data18sd1)
+#Rename df
+rownames(data18SumStat1)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.g', 'Q1.h')
+colnames(data18SumStat1)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+
+```
+
+##Means and Standard Deviations by Living: Q1
+```{r Summary Stats Living}
+#The same summary stats as above, but filtered just for upperclassmen and grouped by living situation
+#Remember that 2018 cannot be used for this comparison due to limited data
+data16GroupUpper1 <- data16final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q1.a.m =mean(Q1.a, na.rm =TRUE), Q1.b.m=mean(Q1.b, na.rm =TRUE), Q1.c.m=mean(Q1.c, na.rm =TRUE), Q1.d.m=mean(Q1.d, na.rm =TRUE), Q1.e.m=mean(Q1.e, na.rm =TRUE), Q1.f.m=mean(Q1.f, na.rm =TRUE), Q1.g.m=mean(Q1.g, na.rm =TRUE), Q1.h.m=mean(Q1.h, na.rm =TRUE), Q1.a.s =sd(Q1.a, na.rm =TRUE), 
+Q1.b.s=sd(Q1.b, na.rm =TRUE), Q1.c.s=sd(Q1.c, na.rm =TRUE), Q1.d.s=sd(Q1.d, na.rm =TRUE), 
+Q1.e.s=sd(Q1.e, na.rm =TRUE), Q1.f.s=sd(Q1.f, na.rm =TRUE), Q1.g.s=sd(Q1.g, na.rm =TRUE), 
+Q1.h.s=sd(Q1.h, na.rm =TRUE))
+
+data17GroupUpper1 <- data17final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q1.a.m =mean(Q1.a, na.rm =TRUE), Q1.b.m=mean(Q1.b, na.rm =TRUE), Q1.c.m=mean(Q1.c, na.rm =TRUE), Q1.d.m=mean(Q1.d, na.rm =TRUE), Q1.e.m=mean(Q1.e, na.rm =TRUE), Q1.f.m=mean(Q1.f, na.rm =TRUE), Q1.g.m=mean(Q1.g, na.rm =TRUE), Q1.h.m=mean(Q1.h, na.rm =TRUE), Q1.a.s =sd(Q1.a, na.rm =TRUE), 
+Q1.b.s=sd(Q1.b, na.rm =TRUE), Q1.c.s=sd(Q1.c, na.rm =TRUE), Q1.d.s=sd(Q1.d, na.rm =TRUE), 
+Q1.e.s=sd(Q1.e, na.rm =TRUE), Q1.f.s=sd(Q1.f, na.rm =TRUE), Q1.g.s=sd(Q1.g, na.rm =TRUE), 
+Q1.h.s=sd(Q1.h, na.rm =TRUE))
+
+#Summarize the mean, sd by the question: Put it in a different layout using the above calculations, with the x variables being the question
+data16meanUpper1<-t(data16GroupUpper1)[2:9,1:3]
+data16sdUpper1<-t(data16GroupUpper1)[10:17,1:3]
+data16SumStatUpper1<-cbind(data16meanUpper1, data16sdUpper1)
+#Rename df 
+rownames(data16SumStatUpper1)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f', 'Q1.g', 'Q1.h')
+colnames(data16SumStatUpper1)<- c('Clairmont_Mean', 'Main_Mean', 'Off_Mean', 'Clairmont_sd', 'Main_sd', 'Off_sd')
+
+data17meanUpper1<-t(data17GroupUpper1)[2:9,1:3]
+data17sdUpper1<-t(data17GroupUpper1)[10:17,1:3]
+data17SumStatUpper1<-cbind(data17meanUpper1, data17sdUpper1)
+#Rename df
+rownames(data17SumStatUpper1)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f', 'Q1.g', 'Q1.h')
+colnames(data17SumStatUpper1)<- c('Clairmont_Mean', 'Main_Mean', 'Off_Mean', 'Clairmont_sd', 'Main_sd', 'Off_sd')
+
+
+```
+
+##Means and Standard Deviations by Class: Q2
+```{r Summary Stats Class}
+
+#Group By Class and find mean and sd for each question (.m is mean and .s is sd)
+data16Group2 <- data16final %>%  group_by(Class) %>% 
+  summarise(Q2.a.m =mean(Q2.a, na.rm =TRUE), Q2.b.m=mean(Q2.b, na.rm =TRUE), Q2.c.m=mean(Q2.c, na.rm =TRUE), Q2.d.m=mean(Q2.d, na.rm =TRUE), Q2.e.m=mean(Q2.e, na.rm =TRUE), Q2.f.m=mean(Q2.f, na.rm =TRUE), 
+            Q2.a.s =sd(Q2.a, na.rm =TRUE), 
+Q2.b.s=sd(Q2.b, na.rm =TRUE), Q2.c.s=sd(Q2.c, na.rm =TRUE), Q2.d.s=sd(Q2.d, na.rm =TRUE), 
+Q2.e.s=sd(Q2.e, na.rm =TRUE), Q2.f.s=sd(Q2.f, na.rm =TRUE), N = n())
+
+data17Group2 <- data17final %>%  group_by(Class) %>% 
+  summarise(Q2.a.m =mean(Q2.a, na.rm =TRUE), Q2.b.m=mean(Q2.b, na.rm =TRUE), Q2.c.m=mean(Q2.c, na.rm =TRUE), Q2.d.m=mean(Q2.d, na.rm =TRUE), Q2.e.m=mean(Q2.e, na.rm =TRUE), Q2.f.m=mean(Q2.f, na.rm =TRUE), 
+            Q2.a.s =sd(Q2.a, na.rm =TRUE), 
+Q2.b.s=sd(Q2.b, na.rm =TRUE), Q2.c.s=sd(Q2.c, na.rm =TRUE), Q2.d.s=sd(Q2.d, na.rm =TRUE), 
+Q2.e.s=sd(Q2.e, na.rm =TRUE), Q2.f.s=sd(Q2.f, na.rm =TRUE),  N=n())
+
+data18Group2 <- data18final %>%  group_by(Class) %>% 
+  summarise(Q2.a.m =mean(Q2.a, na.rm =TRUE), Q2.b.m=mean(Q2.b, na.rm =TRUE), Q2.c.m=mean(Q2.c, na.rm =TRUE), Q2.d.m=mean(Q2.d, na.rm =TRUE), Q2.e.m=mean(Q2.e, na.rm =TRUE),  Q2.f.m =mean(Q2.f, na.rm =TRUE),  
+            Q2.a.s =sd(Q2.a, na.rm =TRUE), 
+Q2.b.s=sd(Q2.b, na.rm =TRUE), Q2.c.s=sd(Q2.c, na.rm =TRUE), Q2.d.s=sd(Q2.d, na.rm =TRUE), 
+Q2.e.s=sd(Q2.e, na.rm =TRUE), Q2.f.s=sd(Q2.f, na.rm =TRUE),N=n())
+
+#Summarize the mean, sd by the question
+data16mean2<-t(data16Group2)[2:7,1:2]
+data16sd2<-t(data16Group2)[8:13,1:2]
+data16SumStat2<-cbind(data16mean2, data16sd2)
+#Rename df 
+rownames(data16SumStat2)<- c('Q2.a', 'Q2.b', 'Q2.c', 'Q2.d', 'Q2.e', 'Q2.f')
+colnames(data16SumStat2)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+data17mean2<-t(data17Group2)[2:7,1:2]
+data17sd2<-t(data17Group2)[8:13,1:2]
+data17SumStat2<-cbind(data17mean2, data17sd2)
+#Rename df
+rownames(data17SumStat2)<- c('Q2.a', 'Q2.b', 'Q2.c', 'Q2.d', 'Q2.e', 'Q2.f')
+colnames(data17SumStat2)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+data18mean2<-t(data18Group2)[2:7,1:2]
+data18sd2<-t(data18Group2)[8:13,1:2]
+data18SumStat2<-cbind(data18mean2, data18sd2)
+#Rename df
+rownames(data18SumStat2)<- c('Q2.a', 'Q2.b', 'Q2.c', 'Q2.d', 'Q2.e', 'Q2.f')
+colnames(data18SumStat2)<- c('Under_Mean', 'Upper_Mean', 'Under_sd', 'Upper_sd')
+
+
+```
+
+##Means and Standard Deviations by Living: Q2
+```{r Summary Stats Living}
+#The same summary stats as above, but filtered just for upperclassmen and grouped by living situation
+#Remember that 2018 cannot be used for this comparison due to limited data
+data16GroupUpper2 <- data16final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q2.a.m =mean(Q2.a, na.rm =TRUE), Q2.b.m=mean(Q2.b, na.rm =TRUE), Q2.c.m=mean(Q2.c, na.rm =TRUE), Q2.d.m=mean(Q2.d, na.rm =TRUE), Q2.e.m=mean(Q2.e, na.rm =TRUE), Q2.f.m=mean(Q2.f, na.rm =TRUE), 
+            Q2.a.s =sd(Q2.a, na.rm =TRUE), 
+Q2.b.s=sd(Q2.b, na.rm =TRUE), Q2.c.s=sd(Q2.c, na.rm =TRUE), Q2.d.s=sd(Q2.d, na.rm =TRUE), 
+Q2.e.s=sd(Q2.e, na.rm =TRUE), Q2.f.s=sd(Q2.f, na.rm =TRUE))
+
+data17GroupUpper2 <- data17final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q2.a.m =mean(Q2.a, na.rm =TRUE), Q2.b.m=mean(Q2.b, na.rm =TRUE), Q2.c.m=mean(Q2.c, na.rm =TRUE), Q2.d.m=mean(Q2.d, na.rm =TRUE), Q2.e.m=mean(Q2.e, na.rm =TRUE), Q2.f.m=mean(Q2.f, na.rm =TRUE),
+            Q2.a.s =sd(Q2.a, na.rm =TRUE), 
+Q2.b.s=sd(Q2.b, na.rm =TRUE), Q2.c.s=sd(Q2.c, na.rm =TRUE), Q2.d.s=sd(Q2.d, na.rm =TRUE), 
+Q2.e.s=sd(Q2.e, na.rm =TRUE), Q2.f.s=sd(Q2.f, na.rm =TRUE))
+
+#Summarize the mean, sd by the question: Put it in a different layout using the above calculations, with the x variables being the question
+data16meanUpper2<-t(data16GroupUpper2)[2:7,1:3]
+data16sdUpper2<-t(data16GroupUpper2)[8:13,1:3]
+data16SumStatUpper2<-cbind(data16meanUpper2, data16sdUpper2)
+#Rename df 
+rownames(data16SumStatUpper2)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f')
+colnames(data16SumStatUpper2)<- c('Clairmont_Mean', 'Main_Mean', 'Off_Mean', 'Clairmont_sd', 'Main_sd', 'Off_sd')
+
+data17meanUpper2<-t(data17GroupUpper2)[2:7,1:3]
+data17sdUpper2<-t(data17GroupUpper2)[8:13,1:3]
+data17SumStatUpper2<-cbind(data17meanUpper2, data17sdUpper2)
+#Rename df
+rownames(data17SumStatUpper2)<- c('Q1.a', 'Q1.b', 'Q1.c', 'Q1.d', 'Q1.e', 'Q1.f')
+colnames(data17SumStatUpper2)<- c('Clairmont_Mean', 'Main_Mean', 'Off_Mean', 'Clairmont_sd', 'Main_sd', 'Off_sd')
+```
+
+##Q1 and Q2 Combined
+```{r}
+##Summary of all questions, combine sumstat for Q1 and Q2, M for matrix
+data16SumStatM<- rbind(data16SumStat1, data16SumStat2)
+data17SumStatM<- rbind(data17SumStat1, data17SumStat2)
+data18SumStatM<- rbind(data18SumStat1, data18SumStat2)
+
+##Summary of all questions, combine sumstat for Q1 and Q2, M for matrix
+data16SumStatUpperM<- rbind(data16SumStatUpper1, data16SumStatUpper2)
+data17SumStatUpperM<- rbind(data17SumStatUpper1, data17SumStatUpper2)
+
+
+#Find the mean and sd for the average response for Q1 and Q2
+data16GroupTot <- data16final %>%  group_by(Class) %>% 
+  summarise(Q1.avg.m =mean(Q1.avg, na.rm =TRUE), Q2.avg.s=sd(Q2.avg, na.rm =TRUE), N=n())
+
+data17GroupTot <- data17final %>%  group_by(Class) %>% 
+  summarise(Q1.avg.m =mean(Q1.avg, na.rm =TRUE), Q2.avg.s=sd(Q2.avg, na.rm =TRUE), N=n())
+
+data18GroupTot <- data18final %>%  group_by(Class) %>% 
+  summarise(Q1.avg.m =mean(Q1.avg, na.rm =TRUE), Q2.avg.s=sd(Q2.avg, na.rm =TRUE), N=n())
+
+
+
+#Find the mean and sd for the average response for Q1 and Q2
+data16GroupTotUpper <- data16final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q1.avg.m =mean(Q1.avg, na.rm =TRUE), Q2.avg.s=sd(Q2.avg, na.rm =TRUE), N=n())
+
+data17GroupTotUpper <- data17final %>%  filter(Class== "Upper") %>%group_by(Living) %>% 
+  summarise(Q1.avg.m =mean(Q1.avg, na.rm =TRUE), Q2.avg.s=sd(Q2.avg, na.rm =TRUE), N=n())
+
+
+```
+
+
+
+##Prep Data for Graphing
+It's not currently in the right format
+```{r}
+#Create multiple datasets, using the response value, renaming the question number for 'response', and adding a new variable for the questions number
+#Merge these together
+#Variables: Class, Response (numeric), Question (letter), Q (number)
+
+##QUESTION ONE
+data16graph<- rbind(data16final %>% select(Q1.a, Class, Living) %>% rename(Response = Q1.a) %>% mutate(Q= 1,Question ="a"),
+data16final %>% select(Q1.b, Class, Living) %>% rename(Response = Q1.b) %>% mutate(Q= 1,Question ="b"),
+data16final %>% select(Q1.c, Class, Living) %>% rename(Response = Q1.c) %>% mutate(Q= 1,Question ="c"),
+data16final %>% select(Q1.d, Class, Living) %>% rename(Response = Q1.d) %>% mutate(Q= 1,Question ="d") ,
+data16final %>% select(Q1.e, Class, Living) %>% rename(Response = Q1.e) %>% mutate(Q= 1,Question ="e"),
+data16final %>% select(Q1.f, Class, Living) %>% rename(Response = Q1.f) %>% mutate(Q= 1,Question ="f"),
+data16final %>% select(Q1.g, Class, Living) %>% rename(Response = Q1.g) %>% mutate(Q= 1,Question ="g"), 
+data16final %>% select(Q1.h, Class, Living) %>% rename(Response = Q1.h) %>% mutate(Q= 1,Question ="h"),
+data16final %>% select(Q2.a, Class, Living) %>% rename(Response = Q2.a) %>% mutate(Q= 2,Question ="a"),
+data16final %>% select(Q2.b, Class, Living) %>% rename(Response = Q2.b) %>% mutate(Q= 2,Question ="b"),
+data16final %>% select(Q2.c, Class, Living) %>% rename(Response = Q2.c) %>% mutate(Q= 2,Question ="c"),
+data16final %>% select(Q2.d, Class, Living) %>% rename(Response = Q2.d) %>% mutate(Q= 2,Question ="d") ,
+data16final %>% select(Q2.e, Class, Living) %>% rename(Response = Q2.e) %>% mutate(Q= 2,Question ="e"),
+data16final %>% select(Q2.f, Class, Living) %>% rename(Response = Q2.f) %>% mutate(Q= 2,Question ="f"))
+
+data17graph<- rbind(data17final %>% select(Q1.a, Class, Living) %>% rename(Response = Q1.a) %>% mutate(Q= 1,Question ="a"),  
+data17final %>% select(Q1.b, Class, Living) %>% rename(Response = Q1.b) %>% mutate(Q= 1,Question ="b"),
+data17final %>% select(Q1.c, Class, Living) %>% rename(Response = Q1.c) %>% mutate(Q= 1,Question ="c"),
+data17final %>% select(Q1.d, Class, Living) %>% rename(Response = Q1.d) %>% mutate(Q= 1,Question ="d") ,
+data17final %>% select(Q1.e, Class, Living) %>% rename(Response = Q1.e) %>% mutate(Q= 1,Question ="e"),
+data17final %>% select(Q1.f, Class, Living) %>% rename(Response = Q1.f) %>% mutate(Q= 1,Question ="f"),
+data17final %>% select(Q1.g, Class, Living) %>% rename(Response = Q1.g) %>% mutate(Q= 1,Question ="g"), 
+data17final %>% select(Q1.h, Class, Living) %>% rename(Response = Q1.h) %>% mutate(Q= 1,Question ="h"),
+data17final %>% select(Q2.a, Class, Living) %>% rename(Response = Q2.a) %>% mutate(Q= 2,Question ="a"),
+data17final %>% select(Q2.b, Class, Living) %>% rename(Response = Q2.b) %>% mutate(Q= 2,Question ="b"),
+data17final %>% select(Q2.c, Class, Living) %>% rename(Response = Q2.c) %>% mutate(Q= 2,Question ="c"),
+data17final %>% select(Q2.d, Class, Living) %>% rename(Response = Q2.d) %>% mutate(Q= 2,Question ="d") ,
+data17final %>% select(Q2.e, Class, Living) %>% rename(Response = Q2.e) %>% mutate(Q= 2,Question ="e"),
+data17final %>% select(Q2.f, Class, Living) %>% rename(Response = Q2.f) %>% mutate(Q= 2,Question ="f"))
+
+data18graph<- rbind(data18final %>% select(Q1.a, Class, Living) %>% rename(Response = Q1.a) %>% mutate(Q= 1,Question ="a"),  
+data18final %>% select(Q1.b, Class, Living) %>% rename(Response = Q1.b) %>% mutate(Q= 1,Question ="b"),
+data18final %>% select(Q1.c, Class, Living) %>% rename(Response = Q1.c) %>% mutate(Q= 1,Question ="c"),
+data18final %>% select(Q1.d, Class, Living) %>% rename(Response = Q1.d) %>% mutate(Q= 1,Question ="d") ,
+data18final %>% select(Q1.e, Class, Living) %>% rename(Response = Q1.e) %>% mutate(Q= 1,Question ="e"),
+#data18final %>% select(Q1.f, Class) %>% rename(Response = Q1.f) %>% mutate(Question ="f"),
+data18final %>% select(Q1.g, Class, Living) %>% rename(Response = Q1.g) %>% mutate(Q= 1,Question ="g"), 
+data18final %>% select(Q1.h, Class, Living) %>% rename(Response = Q1.h) %>% mutate(Q= 1,Question ="h"),
+data18final %>% select(Q2.a, Class, Living) %>% rename(Response = Q2.a) %>% mutate(Q= 2,Question ="a"),
+data18final %>% select(Q2.b, Class, Living) %>% rename(Response = Q2.b) %>% mutate(Q= 2,Question ="b"),
+data18final %>% select(Q2.c, Class, Living) %>% rename(Response = Q2.c) %>% mutate(Q= 2,Question ="c"),
+data18final %>% select(Q2.d, Class, Living) %>% rename(Response = Q2.d) %>% mutate(Q= 2,Question ="d") ,
+data18final %>% select(Q2.e, Class, Living) %>% rename(Response = Q2.e) %>% mutate(Q= 2,Question ="e"),
+data18final %>% select(Q2.f, Class, Living) %>% rename(Response = Q2.f) %>% mutate(Q= 2,Question ="f"))
+
+
+
+
+```
+
+##Data Aggregation for Graphing (Class)
+```{r}
+#Summarize the data by grouping it and adding an avg and sd
+data16Graphsum<- data16graph %>% group_by(Q, Question, Class) %>% 
+  summarize(SD= sd(Response, na.rm= TRUE), AVG= mean(Response, na.rm= TRUE)) %>%
+  mutate(Type = paste(Q,"_", Question, "_", Class))
+
+data17Graphsum<- data17graph %>% group_by(Q, Question, Class) %>% 
+  summarize(SD= sd(Response, na.rm= TRUE), AVG= mean(Response, na.rm= TRUE)) %>%
+  mutate(Type = paste(Q,"_",Question, "_", Class))
+
+data18Graphsum<- data18graph %>% group_by(Q, Question, Class) %>% 
+  summarize(SD= sd(Response, na.rm= TRUE), AVG= mean(Response, na.rm= TRUE)) %>%
+  mutate(Type = paste(Q,"_",Question, "_", Class))
+```
+
+##Data Aggregation for Graphing (Living)
+```{r}
+#Then, summarize this aggregated data for visual
+data16GraphLivsum<- data16graph %>% 
+  filter(Class=="Upper") %>%
+  group_by(Q, Question, Living) %>% 
+  summarize(SD= sd(Response, na.rm= TRUE), AVG= mean(Response, na.rm= TRUE)) %>%
+  mutate(Type = paste(Q, "_", Question, "_", Living))
+
+data17GraphLivsum<- data17graph %>% 
+  filter(Class=="Upper") %>%
+  group_by(Q, Question, Living) %>% 
+  summarize(SD= sd(Response, na.rm= TRUE), AVG= mean(Response, na.rm= TRUE)) %>%
+  mutate(Type = paste(Q, "_", Question, "_", Living))
+
+```
+
+##Graphing: 2016
+```{r}
+##Question One, Comparing Under and Upper
+ggplot(data16Graphsum %>% filter(Q==1), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Student Identity and Practices related to Sustainability in 2016 (Q1)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+
+##Question Two, Comparing Under and Upper
+ggplot(data16Graphsum %>% filter(Q==2), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses in 2016 (Q2)") +
+  ggtitle("Student Identity and Values related to Sustainability") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+
+##Question One, Comparing Upper On & Off Campus
+ggplot(data16GraphLivsum %>% filter(Q==1), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Living)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Upperclassmen Student Identity and Practices related to Sustainability in 2016 (Q1)") +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus"))
+
+##Question Two, Comparing Under and Upper
+ggplot(data16GraphLivsum %>% filter(Q==2), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Living)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Upperclassmen Student Identity and Values related to Sustainability in 2016 (Q2)") +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus"))
+```
+
+
+##Graphing: 2017
+```{r}
+##Question One, Comparing Under and Upper
+ggplot(data17Graphsum %>% filter(Q==1), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Student Identity and Practices related to Sustainability in 2017 (Q1)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+
+##Question Two, Comparing Under and Upper
+ggplot(data17Graphsum %>% filter(Q==2), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Student Identity and Values related to Sustainability in 2017 (Q2)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+
+##Question One, Comparing Upper On & Off Campus
+ggplot(data17GraphLivsum %>% filter(Q==1), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Living)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Upperclassmen Student Identity and Practices related to Sustainability in 2017 (Q1)") +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus"))
+
+##Question Two, Comparing Under and Upper
+ggplot(data17GraphLivsum %>% filter(Q==2), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Living)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Upperclassmen Student Identity and Values related to Sustainability in 2017 (Q2)") +
+  scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus"))
+```
+
+##Graphing: 2018
+```{r}
+##Question One, Comparing Under and Upper
+ggplot(data18Graphsum %>% filter(Q==1), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Student Identity and Practices related to Sustainability in 2018 (Q1)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+
+##Question Two, Comparing Under and Upper
+ggplot(data18Graphsum %>% filter(Q==2), mapping= aes(x= Question, y=AVG, ymin= (AVG-SD), ymax= (AVG+SD), fill=Class)) + 
+  geom_crossbar(position = "dodge", width= 0.7) +
+  xlab("Question") + ylab("Average and Standard Deviation of Responses") +
+  ggtitle("Student Identity and Values related to Sustainability in 2018 (Q2)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))
+```
+
+##T Test Class Q1
+```{r}
+#Data will be added to the summary stat files and be organized by questions
+
+#2016
+t16_1a<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.a), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.a))
+t16_1b<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.b), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.b))
+t16_1c<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.c), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.c))
+t16_1d<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.d), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.d))
+t16_1e<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.e), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.e))
+t16_1f<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.f), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.f))
+t16_1g<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.g), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.g))
+t16_1h<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.h), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.h))
+t16_1avg<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q1.avg), 
+       data16final %>% filter(Class== "Under") %>% select(Q1.avg))
+
+#2017
+t17_1a<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.a), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.a))
+t17_1b<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.b), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.b))
+t17_1c<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.c), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.c))
+t17_1d<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.d), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.d))
+t17_1e<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.e), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.e))
+t17_1f<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.f), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.f))
+t17_1g<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.g), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.g))
+t17_1h<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.h), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.h))
+t17_1avg<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q1.avg), 
+       data17final %>% filter(Class== "Under") %>% select(Q1.avg))
+
+#2018
+t18_1a<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.a), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.a))
+t18_1b<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.b), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.b))
+t18_1c<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.c), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.c))
+t18_1d<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.d), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.d))
+t18_1e<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.e), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.e))
+t18_1g<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.g), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.g))
+t18_1h<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.h), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.h))
+t18_1avg<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q1.avg), 
+       data18final %>% filter(Class== "Under") %>% select(Q1.avg))
+```
+
+
+##T Test Class Q2
+```{r}
+#Data will be added to the summary stat files and be organized by questions
+
+#2016
+t16_2a<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.a), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.a))
+t16_2b<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.b), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.b))
+t16_2c<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.c), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.c))
+t16_2d<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.d), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.d))
+t16_2e<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.e), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.e))
+t16_2f<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.f), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.f))
+t16_2avg<-t.test(data16final %>% filter(Class== "Upper") %>% select(Q2.avg), 
+       data16final %>% filter(Class== "Under") %>% select(Q2.avg))
+
+#2017
+t17_2a<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.a), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.a))
+t17_2b<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.b), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.b))
+t17_2c<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.c), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.c))
+t17_2d<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.d), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.d))
+t17_2e<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.e), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.e))
+t17_2f<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.f), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.f))
+t17_2avg<-t.test(data17final %>% filter(Class== "Upper") %>% select(Q2.avg), 
+       data17final %>% filter(Class== "Under") %>% select(Q2.avg))
+
+#2018
+t18_2a<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.a), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.a))
+t18_2b<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.b), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.b))
+t18_2c<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.c), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.c))
+t18_2d<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.d), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.d))
+t18_2e<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.e), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.e))
+t18_2f<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.f), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.f))
+t18_2avg<-t.test(data18final %>% filter(Class== "Upper") %>% select(Q2.avg), 
+       data18final %>% filter(Class== "Under") %>% select(Q2.avg))
+```
+
+##Combine t test, CI into summary stat
+```{r}
+pvalues16<-c(t16_1a$p.value, t16_1b$p.value, t16_1c$p.value, t16_1d$p.value, t16_1e$p.value, t16_1f$p.value, t16_1g$p.value, t16_1h$p.value, t16_2a$p.value, t16_2b$p.value, t16_2c$p.value, t16_2d$p.value, t16_2e$p.value, t16_2f$p.value)
+
+
+pvalues17<-c(t17_1a$p.value, t17_1b$p.value, t17_1c$p.value, t17_1d$p.value, t17_1e$p.value, t17_1f$p.value, t17_1g$p.value, t17_1h$p.value, t17_2a$p.value, t17_2b$p.value, t17_2c$p.value, t17_2d$p.value, t17_2e$p.value, t17_2f$p.value)
+
+pvalues18<-c(t18_1a$p.value, t18_1b$p.value, t18_1c$p.value, t18_1d$p.value, t18_1e$p.value, t18_1g$p.value, t18_1h$p.value, t18_2a$p.value, t18_2b$p.value, t18_2c$p.value, t18_2d$p.value, t18_2e$p.value, t18_2f$p.value)
+
+CIl16<-c(t16_1a$conf.int[1], t16_1b$conf.int[1], t16_1c$conf.int[1], t16_1d$conf.int[1], t16_1e$conf.int[1], t16_1f$conf.int[1], t16_1g$conf.int[1], t16_1h$conf.int[1], t16_2a$conf.int[1], t16_2b$conf.int[1], t16_2c$conf.int[1], t16_2d$conf.int[1], t16_2e$conf.int[1], t16_2f$conf.int[1])
+
+CIl17<-c(t17_1a$conf.int[1], t17_1b$conf.int[1], t17_1c$conf.int[1], t17_1d$conf.int[1], t17_1e$conf.int[1], t17_1f$conf.int[1], t17_1g$conf.int[1], t17_1h$conf.int[1], t17_2a$conf.int[1], t17_2b$conf.int[1], t17_2c$conf.int[1], t17_2d$conf.int[1], t17_2e$conf.int[1], t17_2f$conf.int[1])
+
+CIl18<-c(t18_1a$conf.int[1], t18_1b$conf.int[1], t18_1c$conf.int[1], t18_1d$conf.int[1], t18_1e$conf.int[1], t18_1g$conf.int[1], t18_1h$conf.int[1], t18_2a$conf.int[1], t18_2b$conf.int[1], t18_2c$conf.int[1], t18_2d$conf.int[1], t18_2e$conf.int[1], t18_2f$conf.int[1])
+
+CIu16<-c(t16_1a$conf.int[2], t16_1b$conf.int[2], t16_1c$conf.int[2], t16_1d$conf.int[2], t16_1e$conf.int[2], t16_1f$conf.int[2], t16_1g$conf.int[2], t16_1h$conf.int[2], t16_2a$conf.int[2], t16_2b$conf.int[2], t16_2c$conf.int[2], t16_2d$conf.int[2], t16_2e$conf.int[2], t16_2f$conf.int[2])
+
+CIu17<-c(t17_1a$conf.int[2], t17_1b$conf.int[2], t17_1c$conf.int[2], t17_1d$conf.int[2], t17_1e$conf.int[2], t17_1f$conf.int[2], t17_1g$conf.int[2], t17_1h$conf.int[2], t17_2a$conf.int[2], t17_2b$conf.int[2], t17_2c$conf.int[2], t17_2d$conf.int[2], t17_2e$conf.int[2], t17_2f$conf.int[2])
+
+CIu18<-c(t18_1a$conf.int[2], t18_1b$conf.int[2], t18_1c$conf.int[2], t18_1d$conf.int[2], t18_1e$conf.int[2], t18_1g$conf.int[2], t18_1h$conf.int[2], t18_2a$conf.int[2], t18_2b$conf.int[2], t18_2c$conf.int[2], t18_2d$conf.int[2], t18_2e$conf.int[2], t18_2f$conf.int[2])
+
+data16SumStat <- data.frame(row.names(data16SumStatM), data16SumStatM) %>% rename(Question= row.names.data16SumStatM.) %>% mutate(p=pvalues16, CIlower=CIl16, CIupper=CIu16) 
+
+data17SumStat <- data.frame(row.names(data17SumStatM), data17SumStatM) %>% mutate(p=pvalues17, CIlower=CIl17, CIupper=CIu17) %>% rename(Question= row.names.data17SumStatM.)
+
+data18SumStat <- data.frame(row.names(data18SumStatM), data18SumStatM) %>% mutate(p=pvalues18, CIlower=CIl18, CIupper=CIu18) %>% rename(Question= row.names.data18SumStatM.)
+
+
+```
+
+
+##ANOVA Upper Q1 and Q2
+```{r}
+a16_Q1a<-aov(Q1.a ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1b<-aov(Q1.b ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1c<-aov(Q1.c ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1d<-aov(Q1.d ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1e<-aov(Q1.e ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1f<-aov(Q1.f ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1g<-aov(Q1.g ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q1h<-aov(Q1.h ~ Level, data= data16final %>% filter(Class=="Upper"))
+
+a17_Q1a<-aov(Q1.a ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1b<-aov(Q1.b ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1c<-aov(Q1.c ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1d<-aov(Q1.d ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1e<-aov(Q1.e ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1f<-aov(Q1.f ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1g<-aov(Q1.g ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q1h<-aov(Q1.h ~ Level, data= data17final %>% filter(Class=="Upper"))
+
+a16_Q2a<-aov(Q2.a ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q2b<-aov(Q2.b ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q2c<-aov(Q2.c ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q2d<-aov(Q2.d ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q2e<-aov(Q2.e ~ Level, data= data16final %>% filter(Class=="Upper"))
+a16_Q2f<-aov(Q2.f ~ Level, data= data16final %>% filter(Class=="Upper"))
+
+
+a17_Q2a<-aov(Q2.a ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q2b<-aov(Q2.b ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q2c<-aov(Q2.c ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q2d<-aov(Q2.d ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q2e<-aov(Q2.e ~ Level, data= data17final %>% filter(Class=="Upper"))
+a17_Q2f<-aov(Q2.f ~ Level, data= data17final %>% filter(Class=="Upper"))
+
+```
+
+
+
+
+##Combine ANOVA into summary stat
+```{r}
+pvaluesUpper16<-c(summary(a16_Q1a)[[1]][1,5], summary(a16_Q1b)[[1]][1,5], summary(a16_Q1c)[[1]][1,5], summary(a16_Q1d)[[1]][1,5], summary(a16_Q1e)[[1]][1,5], summary(a16_Q1f)[[1]][1,5], summary(a16_Q1g)[[1]][1,5], summary(a16_Q1h)[[1]][1,5], summary(a16_Q2a)[[1]][1,5], summary(a16_Q2b)[[1]][1,5], summary(a16_Q2c)[[1]][1,5], summary(a16_Q2d)[[1]][1,5], summary(a16_Q2e)[[1]][1,5], summary(a16_Q2f)[[1]][1,5])
+
+
+pvaluesUpper17<-c(summary(a17_Q1a)[[1]][1,5], summary(a17_Q1b)[[1]][1,5], summary(a17_Q1c)[[1]][1,5], summary(a17_Q1d)[[1]][1,5], summary(a17_Q1e)[[1]][1,5], summary(a17_Q1f)[[1]][1,5], summary(a17_Q1g)[[1]][1,5], summary(a17_Q1h)[[1]][1,5], summary(a17_Q2a)[[1]][1,5], summary(a17_Q2b)[[1]][1,5], summary(a17_Q2c)[[1]][1,5], summary(a17_Q2d)[[1]][1,5], summary(a17_Q2e)[[1]][1,5], summary(a17_Q2f)[[1]][1,5])
+
+fvaluesUpper16<-c(summary(a16_Q1a)[[1]][1,4], summary(a16_Q1b)[[1]][1,4], summary(a16_Q1c)[[1]][1,4], summary(a16_Q1d)[[1]][1,4], summary(a16_Q1e)[[1]][1,4], summary(a16_Q1f)[[1]][1,4], summary(a16_Q1g)[[1]][1,4], summary(a16_Q1h)[[1]][1,4], summary(a16_Q2a)[[1]][1,4], summary(a16_Q2b)[[1]][1,4], summary(a16_Q2c)[[1]][1,4], summary(a16_Q2d)[[1]][1,4], summary(a16_Q2e)[[1]][1,4], summary(a16_Q2f)[[1]][1,4])
+
+fvaluesUpper17<-c(summary(a17_Q1a)[[1]][1,4], summary(a17_Q1b)[[1]][1,4], summary(a17_Q1c)[[1]][1,4], summary(a17_Q1d)[[1]][1,4], summary(a17_Q1e)[[1]][1,4], summary(a17_Q1f)[[1]][1,4], summary(a17_Q1g)[[1]][1,4], summary(a17_Q1h)[[1]][1,4], summary(a17_Q2a)[[1]][1,4], summary(a17_Q2b)[[1]][1,4], summary(a17_Q2c)[[1]][1,4], summary(a17_Q2d)[[1]][1,4], summary(a17_Q2e)[[1]][1,4], summary(a17_Q2f)[[1]][1,4])
+
+
+
+data16SumStatUpper <- data.frame(row.names(data16SumStatUpperM), data16SumStatUpperM) %>% rename(Question= row.names.data16SumStatUpperM.) %>% mutate(p=pvaluesUpper16, f=fvaluesUpper16) 
+
+data17SumStatUpper <- data.frame(row.names(data17SumStatUpperM), data17SumStatUpperM) %>% rename(Question= row.names.data17SumStatUpperM.) %>% mutate(p=pvaluesUpper17, f=fvaluesUpper17) 
+
+```
+
+##Linear Regression
+```{r}
+#2016
+ggplot() + geom_point(data=data16final, mapping=aes(x=Q1.avg, y = Q2.avg, color=Class)) +
+  scale_color_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))+
+  geom_smooth(data=data16final%>% filter(Class=="Upper"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#E69F00" ) +
+  geom_smooth(data=data16final%>% filter(Class=="Under"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color= "#56B4E9" )
+
+
+ggplot() + geom_point(data=data16final %>% filter(Class=="Upper"), mapping=aes(x=Q1.avg, y = Q2.avg, color=Living)) +
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus")) +
+geom_smooth(data=data16final%>% filter(Living=="Main"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#999999" )  +
+geom_smooth(data=data16final%>% filter(Living=="Clairmont"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#E69F00" ) +
+  geom_smooth(data=data16final%>% filter(Living=="Off"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color= "#56B4E9" )
+
+#2017
+ggplot() + geom_point(data=data17final, mapping=aes(x=Q1.avg, y = Q2.avg, color=Class)) +
+  scale_color_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))+
+  geom_smooth(data=data17final%>% filter(Class=="Upper"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#E69F00" ) +
+  geom_smooth(data=data17final%>% filter(Class=="Under"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color= "#56B4E9" )
+
+
+ggplot() + geom_point(data=data17final %>% filter(Class=="Upper"), mapping=aes(x=Q1.avg, y = Q2.avg, color=Living)) +
+  scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Main", "Clairmont", "Off"),
+                         labels=c("Main Campus", "Clairmont", "Off Campus")) +
+geom_smooth(data=data17final%>% filter(Living=="Main"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#999999" )  +
+geom_smooth(data=data17final%>% filter(Living=="Clairmont"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#E69F00" ) +
+  geom_smooth(data=data17final%>% filter(Living=="Off"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color= "#56B4E9" )
+
+#2018
+ggplot() + geom_point(data=data18final, mapping=aes(x=Q1.avg, y = Q2.avg, color=Class)) +
+  scale_color_manual(values=c("#E69F00", "#56B4E9"), 
+                         name="",
+                         breaks=c("Upper", "Under"),
+                         labels=c("Upperclassmen", "Underclassmen"))+
+  geom_smooth(data=data18final%>% filter(Class=="Upper"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color="#E69F00" ) +
+  geom_smooth(data=data18final%>% filter(Class=="Under"), mapping=aes(x=Q1.avg, y = Q2.avg), method= "lm", se= FALSE, color= "#56B4E9" )
+ 
+```
+
+##Saving Stuff
+```{r}
+write.csv(data16SumStat, 'data16SumStat.csv')
+write.csv(data17SumStat, 'data17SumStat.csv')
+write.csv(data17SumStat, 'data18SumStat.csv')
+write.csv(data16SumStatUpper, 'data16SumStatUpper.csv')
+write.csv(data17SumStatUpper, 'data17SumStatUpper.csv')
+```
+
